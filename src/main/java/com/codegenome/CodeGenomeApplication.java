@@ -1,23 +1,32 @@
 package com.codegenome;
 
+import com.codegenome.extractor.EntityExtractor;
+import com.codegenome.model.CodeEntity;
 import com.codegenome.parser.JavaFileParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
 
 import java.nio.file.Path;
+import java.util.List;
 
 public class CodeGenomeApplication {
-    static void main() throws Exception {
-        Path testFile = Path.of("sample-project/src/User.java");
 
+    static void main() throws Exception {
+
+        Path testFile =
+                Path.of("sample-project/src/com/example/User.java");
+
+        // Parse the Java file
         JavaFileParser parser = new JavaFileParser();
         CompilationUnit cu = parser.parseFile(testFile);
 
-        cu.findAll(ClassOrInterfaceDeclaration.class)
-                .forEach(cls -> System.out.println("Class found: " + cls.getNameAsString()));
+        // Extract entities
+        EntityExtractor extractor = new EntityExtractor();
+        List<CodeEntity> entities =
+                extractor.extractEntities(cu);
 
-        cu.findAll(MethodDeclaration.class)
-                .forEach(method -> System.out.println("Method found: " + method.getNameAsString()));
+        // Display extracted entities
+        for (CodeEntity entity : entities) {
+            System.out.println(entity);
+        }
     }
 }
