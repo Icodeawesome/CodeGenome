@@ -1,7 +1,8 @@
 package com.example;
 
-class User {
+class User extends Person implements Authenticatable{
     void login() {
+        Person person = new Person();
     }
     int number() {
         return 7;

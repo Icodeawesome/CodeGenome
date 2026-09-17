@@ -1,7 +1,7 @@
 package com.codegenome;
 
-import com.codegenome.extractor.EntityExtractor;
-import com.codegenome.model.CodeEntity;
+import com.codegenome.extractor.RelationshipExtractor;
+import com.codegenome.model.CodeRelationship;
 import com.codegenome.parser.JavaFileParser;
 import com.github.javaparser.ast.CompilationUnit;
 
@@ -15,18 +15,44 @@ public class CodeGenomeApplication {
         Path testFile =
                 Path.of("sample-project/src/com/example/User.java");
 
-        // Parse the Java file
+        // Parse Java file
         JavaFileParser parser = new JavaFileParser();
         CompilationUnit cu = parser.parseFile(testFile);
 
-        // Extract entities
-        EntityExtractor extractor = new EntityExtractor();
-        List<CodeEntity> entities =
-                extractor.extractEntities(cu);
+        // Extract CONTAINS relationships
+        RelationshipExtractor extractor =
+                new RelationshipExtractor();
 
-        // Display extracted entities
-        for (CodeEntity entity : entities) {
-            System.out.println(entity);
+        List<CodeRelationship> relationships =
+                extractor.extractContainsRelationships(cu);
+
+        // Extract EXTENDS relationships
+        List<CodeRelationship> extendsRelationships =
+                extractor.extractExtendsRelationships(cu);
+
+        for (CodeRelationship relationship : extendsRelationships) {
+            System.out.println(relationship);
+        }
+
+        // Extract IMPLEMENTS relationships
+        List<CodeRelationship> implementsRelationships =
+                extractor.extractImplementsRelationships(cu);
+
+        for (CodeRelationship relationship : implementsRelationships) {
+            System.out.println(relationship);
+        }
+
+        // Extract CREATES relationships
+        List<CodeRelationship> createsRelationships =
+                extractor.extractCreatesRelationships(cu);
+
+        for (CodeRelationship relationship : createsRelationships) {
+            System.out.println(relationship);
+        }
+
+        // Display relationships
+        for (CodeRelationship relationship : relationships) {
+            System.out.println(relationship);
         }
     }
 }
