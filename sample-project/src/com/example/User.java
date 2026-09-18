@@ -2,7 +2,8 @@ package com.example;
 
 class User extends Person implements Authenticatable{
     void login() {
-        Person person = new Person();
+        Database database = new Database();
+        database.connect();
     }
     int number() {
         return 7;

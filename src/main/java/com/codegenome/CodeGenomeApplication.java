@@ -50,6 +50,14 @@ public class CodeGenomeApplication {
             System.out.println(relationship);
         }
 
+        // Extract CALLS relationships
+        List<CodeRelationship> callsRelationships =
+                extractor.extractCallsRelationships(cu);
+
+        for (CodeRelationship relationship : callsRelationships) {
+            System.out.println(relationship);
+        }
+
         // Display relationships
         for (CodeRelationship relationship : relationships) {
             System.out.println(relationship);

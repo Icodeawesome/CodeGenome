@@ -5,6 +5,8 @@ import com.codegenome.model.RelationshipType;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.expr.MethodCallExpr;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -187,6 +189,83 @@ public class RelationshipExtractor {
                                                 RelationshipType.CREATES,
                                                 qualifiedParentName,
                                                 qualifiedCreatedClassName
+                                        )
+                                );
+                            });
+                });
+
+        return relationships;
+    }
+
+    public List<CodeRelationship> extractCallsRelationships(
+            CompilationUnit cu) {
+
+        List<CodeRelationship> relationships = new ArrayList<>();
+
+        cu.findAll(MethodCallExpr.class)
+                .forEach(methodCall -> {
+
+                    methodCall.findAncestor(MethodDeclaration.class)
+                            .ifPresent(callingMethod -> {
+
+                                String packageName = cu.getPackageDeclaration()
+                                        .map(packageDeclaration ->
+                                                packageDeclaration.getNameAsString())
+                                        .orElse("");
+
+                                String className =
+                                        callingMethod
+                                                .findAncestor(
+                                                        ClassOrInterfaceDeclaration.class)
+                                                .map(ClassOrInterfaceDeclaration::getNameAsString)
+                                                .orElse("");
+
+                                String callingMethodName =
+                                        callingMethod.getNameAsString();
+
+                                String callingMethodQualifiedName =
+                                        packageName + "."
+                                                + className + "."
+                                                + callingMethodName + "()";
+
+                                String calledMethodName =
+                                        methodCall.getNameAsString();
+
+                                String calledClassName = className;
+
+                                if (methodCall.getScope().isPresent()) {
+
+                                    String variableName =
+                                            methodCall.getScope()
+                                                    .get()
+                                                    .toString();
+
+                                    VariableDeclarator variable =
+                                            callingMethod
+                                                    .findAll(VariableDeclarator.class)
+                                                    .stream()
+                                                    .filter(v ->
+                                                            v.getNameAsString()
+                                                                    .equals(variableName))
+                                                    .findFirst()
+                                                    .orElse(null);
+
+                                    if (variable != null) {
+                                        calledClassName =
+                                                variable.getType().asString();
+                                    }
+                                }
+
+                                String calledMethodQualifiedName =
+                                        packageName + "."
+                                                + calledClassName + "."
+                                                + calledMethodName + "()";
+
+                                relationships.add(
+                                        new CodeRelationship(
+                                                RelationshipType.CALLS,
+                                                callingMethodQualifiedName,
+                                                calledMethodQualifiedName
                                         )
                                 );
                             });
