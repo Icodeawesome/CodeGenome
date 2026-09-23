@@ -20,6 +20,12 @@
             <artifactId>javaparser-core</artifactId>
             <version>3.26.2</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.neo4j.driver</groupId>
+            <artifactId>neo4j-java-driver</artifactId>
+            <version>6.1.0</version>
+        </dependency>
     </dependencies>
 
 </project>
