@@ -6,6 +6,7 @@ import com.codegenome.model.CodeEntity;
 import com.codegenome.model.CodeGraph;
 import com.codegenome.model.CodeRelationship;
 import com.codegenome.parser.JavaFileParser;
+import com.codegenome.parser.SymbolSolverSetup;
 import com.codegenome.scanner.ProjectScanner;
 import com.github.javaparser.ast.CompilationUnit;
 
@@ -29,6 +30,7 @@ public class ProjectGraphBuilder {
 
     public CodeGraph buildGraph(Path projectPath)
             throws IOException {
+        SymbolSolverSetup.configure(projectPath);
 
         CodeGraph graph = new CodeGraph();
 

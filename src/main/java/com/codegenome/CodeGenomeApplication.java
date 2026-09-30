@@ -16,7 +16,7 @@ public class CodeGenomeApplication {
 
         // Build CodeGenome's in-memory graph
         Path projectPath =
-                Path.of("sample-project");
+                Path.of("sample-project/src");
 
         ProjectGraphBuilder builder =
                 new ProjectGraphBuilder();

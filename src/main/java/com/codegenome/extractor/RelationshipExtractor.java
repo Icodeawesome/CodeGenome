@@ -6,6 +6,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 
 import java.util.ArrayList;
@@ -197,80 +198,63 @@ public class RelationshipExtractor {
         return relationships;
     }
 
-    public List<CodeRelationship> extractCallsRelationships(
-            CompilationUnit cu) {
+    public List<CodeRelationship> extractCallsRelationships(CompilationUnit cu) {
 
         List<CodeRelationship> relationships = new ArrayList<>();
 
-        cu.findAll(MethodCallExpr.class)
-                .forEach(methodCall -> {
+        cu.findAll(MethodCallExpr.class).forEach(methodCall -> {
 
-                    methodCall.findAncestor(MethodDeclaration.class)
-                            .ifPresent(callingMethod -> {
+            methodCall.findAncestor(MethodDeclaration.class).ifPresent(callingMethod -> {
 
-                                String packageName = cu.getPackageDeclaration()
-                                        .map(packageDeclaration ->
-                                                packageDeclaration.getNameAsString())
-                                        .orElse("");
+                String callingMethodQualifiedName = buildQualifiedMethodName(cu, callingMethod);
 
-                                String className =
-                                        callingMethod
-                                                .findAncestor(
-                                                        ClassOrInterfaceDeclaration.class)
-                                                .map(ClassOrInterfaceDeclaration::getNameAsString)
-                                                .orElse("");
+                try {
+                    ResolvedMethodDeclaration resolved = methodCall.resolve();
 
-                                String callingMethodName =
-                                        callingMethod.getNameAsString();
+                    String calledClassQualifiedName = resolved.declaringType().getQualifiedName();
+                    String calledMethodName = resolved.getName();
 
-                                String callingMethodQualifiedName =
-                                        packageName + "."
-                                                + className + "."
-                                                + callingMethodName + "()";
+                    // Skip calls into the JDK / libraries - only keep project-internal calls
+                    if (!isProjectClass(calledClassQualifiedName, cu)) {
+                        return;
+                    }
 
-                                String calledMethodName =
-                                        methodCall.getNameAsString();
+                    String calledMethodQualifiedName =
+                            calledClassQualifiedName + "." + calledMethodName + "()";
 
-                                String calledClassName = className;
+                    relationships.add(new CodeRelationship(
+                            RelationshipType.CALLS,
+                            callingMethodQualifiedName,
+                            calledMethodQualifiedName
+                    ));
 
-                                if (methodCall.getScope().isPresent()) {
-
-                                    String variableName =
-                                            methodCall.getScope()
-                                                    .get()
-                                                    .toString();
-
-                                    VariableDeclarator variable =
-                                            callingMethod
-                                                    .findAll(VariableDeclarator.class)
-                                                    .stream()
-                                                    .filter(v ->
-                                                            v.getNameAsString()
-                                                                    .equals(variableName))
-                                                    .findFirst()
-                                                    .orElse(null);
-
-                                    if (variable != null) {
-                                        calledClassName =
-                                                variable.getType().asString();
-                                    }
-                                }
-
-                                String calledMethodQualifiedName =
-                                        packageName + "."
-                                                + calledClassName + "."
-                                                + calledMethodName + "()";
-
-                                relationships.add(
-                                        new CodeRelationship(
-                                                RelationshipType.CALLS,
-                                                callingMethodQualifiedName,
-                                                calledMethodQualifiedName
-                                        )
-                                );
-                            });
-                });
+                } catch (Exception e) {
+                    // Could not resolve this call (e.g. unresolvable generic, missing dependency).
+                    // Skip it rather than guessing - a missing edge is safer than a wrong one.
+                }
+            });
+        });
 
         return relationships;
+    }
+
+    private String buildQualifiedMethodName(CompilationUnit cu, MethodDeclaration method) {
+        String packageName = cu.getPackageDeclaration()
+                .map(pd -> pd.getNameAsString())
+                .orElse("");
+
+        String className = method.findAncestor(ClassOrInterfaceDeclaration.class)
+                .map(ClassOrInterfaceDeclaration::getNameAsString)
+                .orElse("");
+
+        String prefix = packageName.isEmpty() ? "" : packageName + ".";
+        return prefix + className + "." + method.getNameAsString() + "()";
+    }
+
+    private boolean isProjectClass(String qualifiedName, CompilationUnit cu) {
+        // Simplest correct check for V1: does this qualified name start with
+        // any package actually declared in the project we're analyzing?
+        // We approximate this by checking it's not a java.* / javax.* JDK class.
+        return !qualifiedName.startsWith("java.") && !qualifiedName.startsWith("javax.");
     }
 }
